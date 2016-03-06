@@ -75,9 +75,17 @@
 //-----------------------------------------------------------------------------
 			var hostGold = 10;
 			var hostUnitTiers = [1];
+			var playerHealths = []
 			//Cost 10 gold to make one tier 1
 			//has 50 health and does 10 damage
-
+			
+			socket.on("host starter", function(data){
+				if(UserCode == data.Code)
+				{
+					hostUnitsHealth = data[ArrayOf];
+					playerHealths = data[ArrayOfHealth];
+				}
+			});
 			
 			function unitAttack(unit, player) //unit = unit making attack, player = player being attacked
 			{

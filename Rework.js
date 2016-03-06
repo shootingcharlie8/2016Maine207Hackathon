@@ -144,6 +144,7 @@ io.on('connection', function (socket) {
 	
 	socket.on("player update", function(Code){
 		var CurrentMobArray = [];
+		var PHA = []//PLayer health array
 		var AllDone = false;
 		console.log(Code);
 		if(Code.action == "Attack")
@@ -158,6 +159,31 @@ io.on('connection', function (socket) {
 			}
 				CurrentMobArray[Code.place] -= 10;
 				console.log(CurrentMobArray[Code.place])
+		}else if(Code.action == "Heal")
+		{
+			for(i=0;i<UserSession.length;i++)
+			{
+				if(UserSession[i].UserCode == Code.code)
+				{
+					if(UserSession[i].UserName == Code.Per)
+					{
+						UserSession[i].UserHealth += 10
+					}
+				}
+			}
+			
+		}else if(Code.action == "defend")
+		{
+			for(i=0;i<UserSession.length;i++)
+			{
+				if(UserSession[i].UserCode == Code.code)
+				{
+					if(UserSession[i].UserName == Code.name)
+					{
+						UserSession[i].UserDefendState = true;
+					}
+				}
+			}
 		}
 		
 		for(i=0;i<UserSession.length;i++)
@@ -169,6 +195,7 @@ io.on('connection', function (socket) {
 				console.log(Code.name);
 				if(UserSession[i].UserName == Code.name)
 				{
+					PHA = UserSession[i].UserHealth;
 					UserSession[i].UserTurnState = "D";
 					console.log(UserSession[i]);
 				}
@@ -192,14 +219,26 @@ io.on('connection', function (socket) {
 				if(UserSession[i].UserCode == Code.code)
 				{
 					UserSession[i].UserTurnNumber += 1;
+					UserSession[i].UserTurnState = "ND";
 				}
 			}
+			var SendData = {
+					Code:GivenCode,
+					ArrayOf:0,
+					ArrayOfHealth:0
+			}
+			SendData[ArrayOfHealth] = PHA;
+			SendData[ArrayOf] = CurrentMobArray;
+			io.sockets.emit('host starter', SendData);
+				
 			console.log("Chris Zhu is a god");
 		}
 	});
 });
 	
-	
+	socket.on("host update", function(Code){
+		
+	});
 	
 	
 function genRand()	{

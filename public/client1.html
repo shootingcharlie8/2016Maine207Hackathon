@@ -46,6 +46,8 @@
 		socket.on("displayName", function(data) {
 			if(SessionCode == data.Code)
 			{
+				playersInGame = data.List;
+				alert(playersInGame)
 				playerCount++;
 				document.getElementById("display").innerHTML = data.List;
 			}
@@ -59,18 +61,20 @@
 //-------------------------------------------------------------------------------------		
 //-------------------------------------------------------------------------------------			
 		var turn = 0;
-		var playersAttack = new Array();
+		var playersInGame = new Array();
 		var playersHealth = new Array(); //array of current health values
-		var playersHeal = new Array(); //array of current health added when healing
-		var playersDefend = new Array(); //array of current percentage of damage blocked when defending
 		var defend = false; //determines if next turn will be defended	
 		var AOE = []//Array of Enemies
 		var GameState;
+		var Clickable = false;
 		
 		socket.on("game starter", function(data){
 		console.log("this is first data.code")
 		console.log(data.Code)
-		
+			for(i=0;i<playersInGame.length;i++)
+			{
+				playersHealth.push(100);
+			}
 			if(data.Code == SessionCode)
 			{
 				document.getElementById("display").innerHTML = data['Units']
@@ -85,49 +89,72 @@
 		
 		
 		function updateEnemies(UnitArray,UnitTier)//This will generate the original list of enemies and send the correct values to all the timers.
-		{	
+		{
 			var HoldOutput = ""
 			var Output = ""
 			document.getElementById("display").innerHTML = HoldOutput
 			var AmountOfEnemiesBeingSpawnedIn = UnitArray.length//Amount Of Enemies the player wants to fight 
+			for(g=0;g<playersInGame.length;g++)
+			{
+				Output = Output + '<p className = "visible"onclick="SelectThisPerson(' + "\'playersInGame[g]\'" +','+ g +')">' + playersInGame[g] + "<br>" +playersHealth[g] +"</p>";//Generates the html for the list below.
+				document.getElementById("PartyMem").innerHTML = Output//Changes the value of Outputs
+			}
+			
+			Output = ""
 			for(g=0;g<AmountOfEnemiesBeingSpawnedIn;g++)//Generates the list of enemies and variables
 			{	
-				AOE.push(UnitArray[g]);
-				//TypesofEnemies = (Math.floor(Math.random()*Zone1Monsters.length*1 ))//Types of Enemy from the array Zone1Monsters
-				//TOE.push(TypesofEnemies)//Stores the number
-				//ForSetInt.push(TypesofEnemies)//Stores the Number
-				//TempHealth.push(Zone1MonstersHealth[TypesofEnemies])//Stores the health of the selected monsters
-				//EnemyEncountered.push(Zone1Monsters[TypesofEnemies]);//Stores the name of the the enemy monsters
-				//ArrayForTest[g] = g//Stores the numbers given from the for loop
-				//UniqueTimers[g] = setInterval(TestFunction,TimerOfEnemies[g] * 1000 + 3500,ArrayForTest[g],TOE[g]);//Sends the values too the function Test Function
 				Output = Output + '<p className = "visible"onclick="SelectThisPerson(' + UnitArray[g] +','+ g +')">' + UnitArray[g] +"</p>";//Generates the html for the list below.
 				document.getElementById("display").innerHTML = Output//Changes the value of Outputs
 			}
+			
 		}
 		
 		function SelectThisPerson(Name, Position)
 		{
-			alert("It works")
-			if(GameState == "Attack")
+			if(Clickable == true)
 			{
-				//Name[Position] -= 10;
-				var Data = {
-					place:Position,
-					code:SessionCode,
-					action:GameState,
-					name:UserName
+				if(GameState == "Attack")
+				{
+					var Data = {
+						place:Position,
+						code:SessionCode,
+						action:GameState,
+						name:UserName
+					}
+					socket.emit("player update", Data)
+					GameState = ""
+					document.getElementById("ActionText").innerHTML = "";
+					document.getElementById("AtkButton").className = "hidden"
+					document.getElementById("DefButton").className = "hidden"
+					document.getElementById("UpgButton").className = "hidden"
+					document.getElementById("HealButton").className = "hidden"
+					Clickable = false;
 				}
-				socket.emit("player update", Data)
-				GameState = ""
-				document.getElementById("AtkButton").className = "visible"
-				document.getElementById("DefButton").className = "visible"
-				document.getElementById("UpgButton").className = "visible"
-				document.getElementById("HealButton").className = "visible"
+				if(GameState == "Heal")
+				{
+					var Per = playersInGame[Position]
+					var Data = {
+						place:Per,
+						code:SessionCode,
+						action:GameState,
+						name:UserName
+					}
+					socket.emit("player update", Data)
+					GameState = ""
+					document.getElementById("ActionText").innerHTML = "";
+					document.getElementById("AtkButton").className = "hidden"
+					document.getElementById("DefButton").className = "hidden"
+					document.getElementById("UpgButton").className = "hidden"
+					document.getElementById("HealButton").className = "hidden"
+					Clickable = false;
+					
+				}
 			}
 		}
 		
 		function playerAttack() //Player attacks enemy unit
 		{	
+			Clickable = true;
 			GameState = "Attack"
 			document.getElementById("AtkButton").className = "hidden"
 			document.getElementById("DefButton").className = "hidden"
@@ -137,8 +164,9 @@
 			//hostUnitsHealth[unit] -= playersAttack[player];
 		}
 
-		function healPlayer(healingPlayer, healedPlayer) //healingPlayer heals healedPlayer by healingPlayer's heal value
-		{
+		function healPlayer() //healingPlayer heals healedPlayer by healingPlayer's heal value
+		{	
+			Clickable = true;
 			GameState = "Heal"
 			document.getElementById("AtkButton").className = "hidden"
 			document.getElementById("DefButton").className = "hidden"
@@ -148,8 +176,19 @@
 			//playersHealth[healedPlayer] += playersHeal[healingPlayer];
 		}
 
-		function playerDefend(player) //sets defend to true for 1 turn (MAKE SURE TO TURN defend OFF AFTER EACH TURN)
+		function playerDefend() //setheals defend to true for 1 turn (MAKE SURE TO TURN defend OFF AFTER EACH TURN)
 		{
+		    defend = true;
+			var data = {
+				action:'defend',
+				code:SessionCode,
+				name:UserName
+			}
+			socket.emit("player update",data)
+			document.getElementById("AtkButton").className = "hidden"
+			document.getElementById("DefButton").className = "hidden"
+			document.getElementById("UpgButton").className = "hidden"
+			document.getElementById("HealButton").className = "hidden"
 			//defend = true;
 		}
 
@@ -194,18 +233,19 @@
 	<input type="button" value="Attack" onClick="playerAttack()">
 	</p>
 	<p id="DefButton" class="hidden">
-	<input type="button" value="Defend" onClick="">
+	<input type="button" value="Defend" onClick="playerDefend()">
 	</p>
 	<p id="UpgButton" class="hidden">
 	<input type="button" value="Upgrade" onClick="">
 	</p>
 	<p id="HealButton" class="hidden">
-	<input type="button" value="Heal" onClick="">
+	<input type="button" value="Heal" onClick="healPlayer()">
 	</p>
 </p>
 </form>
 <p id="display"></p> 
 <p id="ActionText"></p>
+<p id="PartyMem"></p>
 </body>
  <!--<button id="button1" onclick="changebutton1()">Click me to attack</button> </form>-->
 </html>
