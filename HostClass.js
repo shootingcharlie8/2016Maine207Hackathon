@@ -3,7 +3,9 @@ module.exports = function(){
 	return{
 		HostSessionName:"",
 		HostCode:"",
-		TurnNumber:0
+		HostTurnNumber:0,
+		HostTurnState:"NR",
+		HostArrayStae:0
 	}
 	
 }

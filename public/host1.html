@@ -13,10 +13,12 @@
 		<script src="http://cdn.socket.io/socket.io-1.4.0.js"></script>
 		<script src="js/phaser.js"> </script>
 		<script>
-			var PlayersInLobby;
+			var PlayersInLobby= 0;
 			var UserCode;
 			var socket = io.connect('http://localhost:3000/')
 			var Nothing = 0;
+			var hostUnitsHealth = [];
+			var hostUnitsTierList = [];
 			function ObtainCode()
 			{
 				var Name = document.getElementById("Name").value;
@@ -44,23 +46,42 @@
 				document.getElementById("codeSpace").innerHTML = ""
 				document.getElementById("display").innerHTML = ""
 				document.getElementById("displayScreen").className = "hidden"
-				socket.emit("start game", UserCode);
 				document.getElementById("Screen2").className = "visible";
-				for (int i = 0; i < PlayersInLobby; i++)
+				for (i = 0; i < PlayersInLobby; i++)
 				{	
 					hostUnitsHealth.push(0);
+					hostUnitsTierList.push(1);
 				}
+				console.log(PlayersInLobby);
+				console.log("This is the tier list array")
+				console.log(hostUnitsTierList)
+				document.getElementById("codeSpace").innerHTML = hostUnitsTierList
+				for(i=0;i<Math.floor(PlayersInLobby/2);i++)
+				{
+					hostUnitsHealth[i] = 50;
+				}
+				var Data = {
+					dataCode:UserCode,
+					unitArray:0,
+					unitTierArray:0
+				};
+				Data['unitArray'] = hostUnitsHealth
+				Data['unitTierArray'] = hostUnitTiers
+				socket.emit("set game", Data);
 			}
+		
 			
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 			var hostGold = 10;
-			var hostUnitTiers = new Array[1];
-			var hostUnitsHealth = new Array[10];
+			var hostUnitTiers = [1];
+			//Cost 10 gold to make one tier 1
+			//has 50 health and does 10 damage
+
 			
 			function unitAttack(unit, player) //unit = unit making attack, player = player being attacked
 			{
-				if (defend == true;)
+				if (defend == true)
 				{
 					if (hostUnitTiers[unit] == 1) //Tier 1 does 10 damage
 					{
@@ -93,7 +114,7 @@
 
 			function addUnit(tier)
 			{
-				for(int i = 0; i < playerCount; i++)
+				for(i = 0; i < playerCount; i++)
 				{
 					if(hostUnitsHealth[i] == 0)
 						hostUnitTiers[i] = tier;
@@ -106,7 +127,6 @@
 				}
 			}
 		
-			
 		</script>
 		
 				

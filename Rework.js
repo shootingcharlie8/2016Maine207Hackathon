@@ -119,11 +119,84 @@ io.on('connection', function (socket) {
 				 }
 	});
 
-	socket.on("start game", function(Code){
-		
+	socket.on("set game", function(Data){
+		console.dir(Data);
+		var HostUnitArray = Data['unitArray'];
+		console.log(HostUnitArray);
+		var HostCode = Data.dataCode;
+		for(i=0;i<HostSession.length;i++)
+		{
+			if(HostSession[i].HostCode == HostCode)
+			{
+				HostSession[i].HostArrayState = HostUnitArray;
+			}
+		}
+		var HostTierArray = Data['unitTierArray'];
+		var JSONData = {
+			Code:HostCode,
+			Units:0,
+			Tier:0
+		};
+		JSONData['Units'] = HostUnitArray;
+		JSONData['Tier'] = HostTierArray;
+		io.sockets.emit('game starter', JSONData);
 	});
 	
-	
+	socket.on("player update", function(Code){
+		var CurrentMobArray = [];
+		var AllDone = false;
+		console.log(Code);
+		if(Code.action == "Attack")
+		{
+			for(i=0;i<HostSession.length;i++)
+			{
+				if(HostSession[i].HostCode == Code.code)
+				{
+					CurrentMobArray = HostSession[i].HostArrayState;
+					break;
+				}
+			}
+				CurrentMobArray[Code.place] -= 10;
+				console.log(CurrentMobArray[Code.place])
+		}
+		
+		for(i=0;i<UserSession.length;i++)
+		{
+			if(UserSession[i].UserCode == Code.code)
+			{
+				console.log("We made it into the first step");
+				console.log(UserSession[i]);
+				console.log(Code.name);
+				if(UserSession[i].UserName == Code.name)
+				{
+					UserSession[i].UserTurnState = "D";
+					console.log(UserSession[i]);
+				}
+			}
+			if(UserSession[i].UserCode == Code.code)
+			{
+				if(UserSession[i].UserTurnState == "D")
+				{
+					AllDone = true;
+					console.log("We did it boys");
+				}else{
+					AllDone = false;
+					console.log("We failed boys");
+				}
+			}
+		}
+		if(AllDone == true)
+		{
+			for(i=0;i<UserSession.length;i++)
+			{
+				if(UserSession[i].UserCode == Code.code)
+				{
+					UserSession[i].UserTurnNumber += 1;
+				}
+			}
+			console.log("Chris Zhu is a god");
+		}
+	});
 });
 	
 	

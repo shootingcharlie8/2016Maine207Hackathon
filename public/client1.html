@@ -22,15 +22,18 @@
 	<script>
 		var socket = io.connect('http://localhost:3000/')
 		var SessionCode;
-
+		var playerCount = 0; //sets from server
+		var UserName = ""
+		var Code
+		//The things still dissapear when the code is false
 		function JoinSession()
 		{
 			document.getElementById("Screen1").className = "hidden"
 			document.getElementById("JoinServer").className = "hidden"
-			var Name = document.getElementById("name").value;
-			var Code = document.getElementById("code").value;
+			UserName = document.getElementById("name").value;
+			Code = document.getElementById("code").value;
 			var Data = {
-				dataName: Name,
+				dataName: UserName,
 				dataCode: Code
 			};
 			socket.emit('join session', Data);
@@ -43,36 +46,111 @@
 		socket.on("displayName", function(data) {
 			if(SessionCode == data.Code)
 			{
+				playerCount++;
 				document.getElementById("display").innerHTML = data.List;
 			}
 		});
 		
 		socket.on("Bad Code", function(data){
 			alert("Code is invalid")
+			document.getElementById("Screen1").className = "visible"
+			document.getElementById("JoinServer").className = "visible"
 		});
 //-------------------------------------------------------------------------------------		
 //-------------------------------------------------------------------------------------			
 		var turn = 0;
-		var playerCount = count; //sets from server
 		var playersAttack = new Array();
 		var playersHealth = new Array(); //array of current health values
 		var playersHeal = new Array(); //array of current health added when healing
 		var playersDefend = new Array(); //array of current percentage of damage blocked when defending
 		var defend = false; //determines if next turn will be defended	
+		var AOE = []//Array of Enemies
+		var GameState;
 		
-		function playerAttack(player, unit) //Player attacks enemy unit
+		socket.on("game starter", function(data){
+		console.log("this is first data.code")
+		console.log(data.Code)
+		
+			if(data.Code == SessionCode)
+			{
+				document.getElementById("display").innerHTML = data['Units']
+				document.getElementById("Screen2").className = "visible";
+				document.getElementById("AtkButton").className = "visible"
+				document.getElementById("DefButton").className = "visible"
+				document.getElementById("UpgButton").className = "visible"
+				document.getElementById("HealButton").className = "visible"
+				updateEnemies(data['Units'], data['Tier']);
+			}
+		});
+		
+		
+		function updateEnemies(UnitArray,UnitTier)//This will generate the original list of enemies and send the correct values to all the timers.
 		{	
-			hostUnitsHealth[unit] -= playersAttack[player];
+			var HoldOutput = ""
+			var Output = ""
+			document.getElementById("display").innerHTML = HoldOutput
+			var AmountOfEnemiesBeingSpawnedIn = UnitArray.length//Amount Of Enemies the player wants to fight 
+			for(g=0;g<AmountOfEnemiesBeingSpawnedIn;g++)//Generates the list of enemies and variables
+			{	
+				AOE.push(UnitArray[g]);
+				//TypesofEnemies = (Math.floor(Math.random()*Zone1Monsters.length*1 ))//Types of Enemy from the array Zone1Monsters
+				//TOE.push(TypesofEnemies)//Stores the number
+				//ForSetInt.push(TypesofEnemies)//Stores the Number
+				//TempHealth.push(Zone1MonstersHealth[TypesofEnemies])//Stores the health of the selected monsters
+				//EnemyEncountered.push(Zone1Monsters[TypesofEnemies]);//Stores the name of the the enemy monsters
+				//ArrayForTest[g] = g//Stores the numbers given from the for loop
+				//UniqueTimers[g] = setInterval(TestFunction,TimerOfEnemies[g] * 1000 + 3500,ArrayForTest[g],TOE[g]);//Sends the values too the function Test Function
+				Output = Output + '<p className = "visible"onclick="SelectThisPerson(' + UnitArray[g] +','+ g +')">' + UnitArray[g] +"</p>";//Generates the html for the list below.
+				document.getElementById("display").innerHTML = Output//Changes the value of Outputs
+			}
+		}
+		
+		function SelectThisPerson(Name, Position)
+		{
+			alert("It works")
+			if(GameState == "Attack")
+			{
+				//Name[Position] -= 10;
+				var Data = {
+					place:Position,
+					code:SessionCode,
+					action:GameState,
+					name:UserName
+				}
+				socket.emit("player update", Data)
+				GameState = ""
+				document.getElementById("AtkButton").className = "visible"
+				document.getElementById("DefButton").className = "visible"
+				document.getElementById("UpgButton").className = "visible"
+				document.getElementById("HealButton").className = "visible"
+			}
+		}
+		
+		function playerAttack() //Player attacks enemy unit
+		{	
+			GameState = "Attack"
+			document.getElementById("AtkButton").className = "hidden"
+			document.getElementById("DefButton").className = "hidden"
+			document.getElementById("UpgButton").className = "hidden"
+			document.getElementById("HealButton").className = "hidden"
+			document.getElementById("ActionText").innerHTML = "Who are you going to attack?"
+			//hostUnitsHealth[unit] -= playersAttack[player];
 		}
 
 		function healPlayer(healingPlayer, healedPlayer) //healingPlayer heals healedPlayer by healingPlayer's heal value
 		{
-			playersHealth[healedPlayer] += playersHeal[healingPlayer];
+			GameState = "Heal"
+			document.getElementById("AtkButton").className = "hidden"
+			document.getElementById("DefButton").className = "hidden"
+			document.getElementById("UpgButton").className = "hidden"
+			document.getElementById("HealButton").className = "hidden"
+			document.getElementById("ActionText").innerHTML = "Who are you going to Heal?"
+			//playersHealth[healedPlayer] += playersHeal[healingPlayer];
 		}
 
 		function playerDefend(player) //sets defend to true for 1 turn (MAKE SURE TO TURN defend OFF AFTER EACH TURN)
 		{
-			defend = true;
+			//defend = true;
 		}
 
 		function upgradeAbility(player, ability) //Attack = 1, Heal = 2, Defend = 3
@@ -108,16 +186,26 @@
   <input type="button" value="Submit" onClick="JoinSession()">
   </p>
 </form>
-
+<p id="display"></p> 
 <!-- This is battle form -->
 <form>
 <p id="Screen2" class="hidden">
-<input type="button" value="Attack" onClick="">
-<input type="button" value="Defend" onClick="">
-<input type="button" value="upgrade" onClick="">
+	<p id="AtkButton" class="hidden">
+	<input type="button" value="Attack" onClick="playerAttack()">
+	</p>
+	<p id="DefButton" class="hidden">
+	<input type="button" value="Defend" onClick="">
+	</p>
+	<p id="UpgButton" class="hidden">
+	<input type="button" value="Upgrade" onClick="">
+	</p>
+	<p id="HealButton" class="hidden">
+	<input type="button" value="Heal" onClick="">
+	</p>
 </p>
 </form>
 <p id="display"></p> 
+<p id="ActionText"></p>
 </body>
  <!--<button id="button1" onclick="changebutton1()">Click me to attack</button> </form>-->
 </html>
